@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rádio Online</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: white;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            margin-top: 50px;
+        }
+        .container {
+            margin-top: 20px;
+        }
+        .radio-status {
+            font-size: 18px;
+            margin: 20px 0;
+        }
+        .musica-info {
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        .album-cover {
+            margin: 20px 0;
+            max-width: 300px;
+            max-height: 300px;
+            border-radius: 10px;
+        }
+        audio {
+            width: 80%;
+            margin-top: 20px;
+            outline: none;
+        }
+        .vinheta {
+            margin-top: 20px;
+        }
+
+        .song {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Bem-vindo à Rádio Online!</h1>
+    <div class="container">
+        <div class="radio-status">
+            <p id="status">A rádio está tocando...</p>
+        </div>
+
+        <div class="musica-info">
+            <img id="capa" src="https://via.placeholder.com/300?text=Sem+Capa" alt="Capa do álbum" style="width:300px;height:auto;">
+            <p id="musica">Carregando próxima música...</p>
+            <p id="artista">Carregando...</p>
+        </div>
+
+
+        <audio class="song" id="audio-player" controls>
+            <source id="audio-source" src="" type="audio/mp3">
+            Seu navegador não suporta o áudio.
+        </audio>
+
+        <div class="vinheta">
+            <audio class="song" id="vinheta-player" controls>
+                <source id="vinheta-source" src="" type="audio/mp3">
+                Seu navegador não suporta o áudio.
+            </audio>
+        </div>
+    </div>
+
+    <script>
+        // Ajuste o volume do áudio para garantir que todas as músicas tenham o mesmo volume
+        document.getElementById("audio-player").volume = 1.0; // Volume máximo (valor entre 0.0 e 1.0)
+
+        let isMusicPlaying = false; // Controle de reprodução da música
+        let isVinhetaPlaying = false; // Controle da vinheta
+
+        // Função para ajustar o volume (aumentar para 200% se necessário)
+        function setVolume(audioElement) {
+            // Se o volume for baixo, aumenta em 200% (valor 2.0)
+            if (audioElement.volume < 1.0) {
+                audioElement.volume = Math.min(audioElement.volume * 2, 1.0);  // Limita o volume máximo em 1
+            }
+        }
+
+        // Função para tocar a próxima música
+        function fetchNextMusic() {
+    fetch('/obter_proximo')
+        .then(response => response.json())
+        .then(data => {
+            if (data.musica) {
+                let musica = data.musica;
+                let vinheta = data.vinheta;
+
+                // Atualiza as informações da música
+                document.getElementById("musica").textContent = `Música: ${musica.nome}`;
+                document.getElementById("artista").textContent = `Artista: ${musica.artista}`;
+
+                // Atualiza a capa do álbum
+                let capaElement = document.getElementById("capa");
+                capaElement.src = musica.capa;
+                capaElement.alt = `Capa do álbum de ${musica.artista}`;
+
+                // Atualiza o áudio da vinheta
+                document.getElementById("vinheta-source").src = vinheta;
+                document.getElementById("vinheta-player").load();
+
+                // Toca a vinheta
+                document.getElementById("vinheta-player").play();
+                isVinhetaPlaying = true;
+
+                // Aguarda o término da vinheta para tocar a música
+                document.getElementById('vinheta-player').addEventListener('ended', function() {
+                    document.getElementById("audio-source").src = musica.url;
+                    document.getElementById("audio-player").load();
+                    document.getElementById("audio-player").play();
+                    isMusicPlaying = true;
+                });
+            } else {
+                document.getElementById("musica").textContent = "Nenhuma música disponível.";
+                document.getElementById("artista").textContent = "";
+            }
+        })
+        .catch(error => console.error('Erro ao buscar música:', error));
+}
+
+        // Função para verificar se a música terminou
+        document.getElementById('audio-player').addEventListener('ended', function() {
+            isMusicPlaying = false; // Música terminou
+            fetchNextMusic(); // Chama a próxima música
+        });
+
+        // Inicia a reprodução da rádio quando a página carrega
+        window.onload = function () {
+            fetchNextMusic(); // Carrega a primeira música imediatamente
+        };
+    </script>
+</body>
+</html>
